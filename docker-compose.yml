@@ -1,0 +1,11 @@
+# EC2 배포용 compose. 워크플로우가 이 파일을 EC2 ~/bandage/ 로 동기화한 뒤
+# compose pull && up 을 실행한다. 이미지 좌표·런타임 설정은 같은 디렉토리의
+# .env (배포 단계에서 생성) 로 주입된다.
+services:
+  mcp-server:
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:dev-latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${BANDAGE_PORT:-8000}:8000"
