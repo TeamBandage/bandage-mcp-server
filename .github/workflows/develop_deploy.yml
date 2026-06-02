@@ -46,14 +46,15 @@ jobs:
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG"
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_TAG"
 
-      # docker-compose.yml 을 EC2 의 ~/bandage/ 로 동기화 (repo 가 single source of truth)
-      - name: Sync docker-compose.yml to EC2
+      # docker-compose.yml 과 nginx.conf 를 EC2 의 ~/bandage/ 로 동기화 (repo 가 single source of truth)
+      #   nginx.conf 가 없으면 compose 의 볼륨 마운트가 깨지므로 함께 동기화한다.
+      - name: Sync deploy files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: rocky
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: docker-compose.yml
+          source: "docker-compose.yml,nginx.conf"
           target: /home/rocky/bandage
           overwrite: true
 
