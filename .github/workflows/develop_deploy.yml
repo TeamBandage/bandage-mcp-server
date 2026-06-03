@@ -60,6 +60,7 @@ jobs:
 
       # EC2 SSH — MCP 서버 런타임 환경변수를 .env 로 주입 후 compose up
       #   BANDAGE_* 는 비밀이 아닌 런타임 설정이라 시크릿 대신 워크플로우에 직접 둔다.
+      #   단, BANDAGE_SLACK_WEBHOOK_URL 은 비밀이라 GitHub Secrets 에서 주입한다.
       #   이미지 좌표(ECR_REGISTRY/REPOSITORY)는 compose 의 image 보간에 쓰인다.
       - name: Deploy to EC2 & Inject ENV
         uses: appleboy/ssh-action@v1.0.3
@@ -70,11 +71,12 @@ jobs:
           BANDAGE_TRANSPORT: streamable-http
           BANDAGE_MOUNT_PATH: /mcp
           BANDAGE_LOG_LEVEL: INFO
+          BANDAGE_SLACK_WEBHOOK_URL: ${{ secrets.BANDAGE_SLACK_WEBHOOK_URL }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: rocky
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REGISTRY,ECR_REPOSITORY,AWS_REGION,BANDAGE_HOST,BANDAGE_PORT,BANDAGE_TRANSPORT,BANDAGE_MOUNT_PATH,BANDAGE_LOG_LEVEL
+          envs: ECR_REGISTRY,ECR_REPOSITORY,AWS_REGION,BANDAGE_HOST,BANDAGE_PORT,BANDAGE_TRANSPORT,BANDAGE_MOUNT_PATH,BANDAGE_LOG_LEVEL,BANDAGE_SLACK_WEBHOOK_URL
           script: |
             set -euo pipefail
             cd ~/bandage
@@ -88,6 +90,7 @@ jobs:
             BANDAGE_TRANSPORT=${BANDAGE_TRANSPORT}
             BANDAGE_MOUNT_PATH=${BANDAGE_MOUNT_PATH}
             BANDAGE_LOG_LEVEL=${BANDAGE_LOG_LEVEL}
+            BANDAGE_SLACK_WEBHOOK_URL=${BANDAGE_SLACK_WEBHOOK_URL}
             EOF
 
             aws ecr get-login-password --region "${AWS_REGION}" \
