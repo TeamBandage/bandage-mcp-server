@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     # 로그 레벨
     log_level: str = "INFO"
 
+    # Slack Incoming Webhook URL (채널별 발급). 미설정 시 notify_slack Tool 비활성.
+    slack_webhook_url: str | None = None
+
+    # 알림 발신자로 사용할 AI Agent 계정 이메일.
+    # notify_slack 호출 시 sender 가 명시되지 않으면 이 값으로 채운다.
+    # (추후 인증 게이트웨이가 헤더로 발신자를 내려주면 그 값이 우선한다.)
+    agent_email: str | None = None
+
 
 def get_settings() -> Settings:
     """설정 인스턴스를 생성해 반환한다."""
