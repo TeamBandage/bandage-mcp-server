@@ -43,6 +43,30 @@ class Settings(BaseSettings):
     # (추후 인증 게이트웨이가 헤더로 발신자를 내려주면 그 값이 우선한다.)
     agent_email: str | None = None
 
+    # --- BE/FE 영향평가 Tool (analyze_spec_change / check_impacting_changes) ---
+    # BE OpenAPI 스펙 raw URL 템플릿. {ref} 자리에 git ref(브랜치/태그/SHA)를 치환한다. (public 무인증)
+    be_spec_url_template: str = (
+        "https://raw.githubusercontent.com/TeamBandage/bandage-band-manager"
+        "/{ref}/docs/openapi.json"
+    )
+    # FE 영역 매핑(fe-areas.json) raw URL. check_impacting_changes 의 조회 단위 source of truth.
+    fe_areas_url: str = (
+        "https://raw.githubusercontent.com/TeamBandage/bandage-fe-web/develop/fe-areas.json"
+    )
+    # FE 벤더 스냅샷(openapi/openapi.json) raw URL.
+    # check_impacting_changes 에서 since_ref 미지정 시 비교 base 로 사용한다.
+    fe_vendor_snapshot_url: str = (
+        "https://raw.githubusercontent.com/TeamBandage/bandage-fe-web/develop/openapi/openapi.json"
+    )
+    # 영향평가의 head ref. 항상 BE develop-HEAD 와 비교한다.
+    be_develop_ref: str = "develop"
+    # oasdiff 바이너리 경로. 컨테이너에서는 절대경로로 덮어쓴다.
+    oasdiff_bin: str = "oasdiff"
+    # raw 스펙 fetch 타임아웃(초).
+    spec_fetch_timeout_seconds: float = 15.0
+    # oasdiff 서브프로세스 타임아웃(초).
+    oasdiff_timeout_seconds: float = 30.0
+
 
 def get_settings() -> Settings:
     """설정 인스턴스를 생성해 반환한다."""

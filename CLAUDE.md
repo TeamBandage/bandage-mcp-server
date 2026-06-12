@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-AI 프로젝트 관리를 위한 Python 기반 MCP(Model Context Protocol) 서버입니다. 원격 배포를 전제로 한 골격 단계이며, 현재는 헬스체크용 `ping` Tool만 등록되어 있습니다. 실제 프로젝트 관리 Tool은 이후 단계에서 추가됩니다.
+AI 프로젝트 관리를 위한 Python 기반 MCP(Model Context Protocol) 서버입니다. 원격 배포를 전제로 합니다. 등록된 Tool: 헬스체크 `ping`, Slack 알림 `notify_slack`, OpenAPI 스펙 비교 `analyze_spec_change`, FE 영역 영향평가 `check_impacting_changes`.
+
+`analyze_spec_change` / `check_impacting_changes`는 BE/FE 영향평가용으로, [oasdiff](https://github.com/oasdiff/oasdiff)(OpenAPI 3.1 diff 엔진)를 서브프로세스로 호출합니다. 무상태(DB 없음)·무인증으로 동작하며 public GitHub raw URL에서 스펙·fe-areas.json을 fetch합니다. 로컬 개발 시 `brew install oasdiff` 필요(컨테이너 이미지엔 포함). 동작 원리는 `spec_fetch.py`(fetch+정규화) → `openapi_diff.py`(oasdiff 래퍼+파싱) → `fe_areas.py`(영역 매칭) → `impact.py`(조립) 순.
 
 ## 명령어
 

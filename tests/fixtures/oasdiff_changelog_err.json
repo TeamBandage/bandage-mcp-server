@@ -1,0 +1,1 @@
+[{"id":"api-path-removed-without-deprecation","text":"api path removed without deprecation","level":3,"operation":"POST","operationId":"login","path":"/api/v1/auth/login","section":"paths","baseSource":{"file":"spec_after.json"},"fingerprint":"2c780b07be31"}]
