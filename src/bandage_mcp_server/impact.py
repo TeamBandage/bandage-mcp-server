@@ -5,7 +5,7 @@ server.py 의 Tool 어댑터를 얇게 유지하기 위해, fetch → 정규화 
 
 - analyze_spec_change: 두 ref 의 스펙을 비교해 breaking/non-breaking 분류 (읽기전용·무상태)
 - check_impacting_changes: since_ref(또는 FE 벤더 스냅샷) → develop-HEAD 의 net-diff 를
-  fe_area 로 필터해 breaking 만 반환 (읽기전용·무상태)
+  fe_area 로 필터해 breaking/non-breaking 으로 나눠 반환 (읽기전용·무상태)
 """
 
 from __future__ import annotations
@@ -84,8 +84,10 @@ async def analyze_spec_change(
 async def check_impacting_changes(
     settings: Settings, *, fe_area: str, since_ref: str | None
 ) -> dict:
-    """fe_area 에 영향을 주는 breaking 변경을 net-diff 로 조회한다. (DB 미기록)
+    """fe_area 에 영향을 주는 변경을 net-diff 로 조회한다. (DB 미기록)
 
+    매칭된 변경을 breaking / non-breaking 으로 나눠 반환한다(신규 API 추가 등
+    non-breaking 도 FE 작업 트리거가 되므로 함께 보고).
     base 는 since_ref 지정 시 해당 ref 의 BE 스펙, 미지정 시 FE 벤더 스냅샷.
     head 는 항상 BE develop-HEAD.
     """
@@ -103,6 +105,7 @@ async def check_impacting_changes(
             "status": "mock-only",
             "message": "미연동 영역 — 평가 불가 (BE endpoint 매핑 없음).",
             "impacting_breaking": [],
+            "impacting_non_breaking": [],
             "limitations": list(_BASE_LIMITATIONS),
         }
 
@@ -120,8 +123,11 @@ async def check_impacting_changes(
     head_spec = await _fetch_be_spec(settings, settings.be_develop_ref)
     changes = await _run_diff(settings, base_spec, head_spec)
 
-    breaking = [c for c in changes if c.is_breaking]
-    impacting = fe_areas.match_changes(area, breaking)
+    # 전체 변경을 영역에 매칭한 뒤 breaking/non-breaking 으로 나눈다.
+    # (신규 API 추가 등 non-breaking 도 FE 작업 트리거가 되므로 누락하지 않는다.)
+    impacting = fe_areas.match_changes(area, changes)
+    impacting_breaking = [c for c in impacting if c.is_breaking]
+    impacting_non_breaking = [c for c in impacting if not c.is_breaking]
 
     flags: dict = {}
     if area.is_partial_mock:
@@ -136,8 +142,13 @@ async def check_impacting_changes(
         "area_status": area.status,
         "base": base_label,
         "head_ref": settings.be_develop_ref,
-        "summary": {"impacting_breaking_count": len(impacting)},
-        "impacting_breaking": [c.as_dict() for c in impacting],
+        "summary": {
+            "impacting_total": len(impacting),
+            "impacting_breaking_count": len(impacting_breaking),
+            "impacting_non_breaking_count": len(impacting_non_breaking),
+        },
+        "impacting_breaking": [c.as_dict() for c in impacting_breaking],
+        "impacting_non_breaking": [c.as_dict() for c in impacting_non_breaking],
         "flags": flags,
         "limitations": _limitations(changes),
     }
