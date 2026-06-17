@@ -254,8 +254,48 @@ async def test_check_impacting_changes_filters_breaking(monkeypatch: pytest.Monk
     result = await impact.check_impacting_changes(settings, fe_area="band", since_ref=None)
     assert result["base"] == "fe-vendor-snapshot"
     assert result["summary"]["impacting_breaking_count"] == 1
+    assert result["summary"]["impacting_non_breaking_count"] == 0
     assert result["impacting_breaking"][0]["path"] == "/api/v1/bands/1"
+    assert result["impacting_non_breaking"] == []
     assert result["limitations"]
+
+
+@pytest.mark.asyncio
+async def test_check_impacting_changes_includes_non_breaking(monkeypatch: pytest.MonkeyPatch) -> None:
+    """신규 API 추가(level 1, non-breaking)도 영역에 매칭되면 보고된다."""
+    settings = Settings()
+
+    async def _fake_fetch_fe_areas(url, *, timeout):
+        return _FE_AREAS_DOC
+
+    async def _fake_fetch_spec(template, ref, *, timeout):
+        return {"openapi": "3.1.0", "paths": {}}
+
+    async def _fake_fetch_url(url, *, timeout):
+        return {"openapi": "3.1.0", "paths": {}}
+
+    # band 영역: breaking 1건(삭제) + non-breaking 1건(신규 엔드포인트), 그리고 타 영역 1건
+    async def _fake_diff(bin_path, base, head, *, timeout):
+        return [
+            openapi_diff.Change("api-removed", 3, "/api/v1/bands/1", "DELETE", "deleteBand", "x"),
+            openapi_diff.Change(
+                "endpoint-added", 1, "/api/v1/bands/9/members", "POST", "addBandMember", "x"
+            ),
+            openapi_diff.Change("api-removed", 3, "/api/v1/auth/login", "POST", "login", "x"),
+        ]
+
+    monkeypatch.setattr(impact.fe_areas, "fetch_fe_areas", _fake_fetch_fe_areas)
+    monkeypatch.setattr(impact.spec_fetch, "fetch_spec", _fake_fetch_spec)
+    monkeypatch.setattr(impact.spec_fetch, "fetch_spec_url", _fake_fetch_url)
+    monkeypatch.setattr(impact.openapi_diff, "diff_specs", _fake_diff)
+
+    result = await impact.check_impacting_changes(settings, fe_area="band", since_ref=None)
+    assert result["summary"]["impacting_total"] == 2
+    assert result["summary"]["impacting_breaking_count"] == 1
+    assert result["summary"]["impacting_non_breaking_count"] == 1
+    assert result["impacting_breaking"][0]["path"] == "/api/v1/bands/1"
+    assert result["impacting_non_breaking"][0]["path"] == "/api/v1/bands/9/members"
+    assert result["impacting_non_breaking"][0]["level"] == "INFO"
 
 
 @pytest.mark.asyncio
@@ -269,3 +309,4 @@ async def test_check_impacting_changes_mock_only(monkeypatch: pytest.MonkeyPatch
     )
     assert result["status"] == "mock-only"
     assert result["impacting_breaking"] == []
+    assert result["impacting_non_breaking"] == []

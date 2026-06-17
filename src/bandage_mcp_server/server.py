@@ -119,17 +119,19 @@ def register_tools(mcp: FastMCP, settings: Settings) -> None:
 
     @mcp.tool()
     async def check_impacting_changes(fe_area: str, since_ref: str | None = None) -> dict:
-        """특정 FE 영역(fe_area)에 영향을 주는 BE breaking 변경을 조회한다.
+        """특정 FE 영역(fe_area)에 영향을 주는 BE 변경을 조회한다.
 
         since_ref(또는 미지정 시 FE 벤더 스냅샷)부터 BE develop-HEAD 까지의 변경 중,
-        해당 영역의 endpoint prefix 또는 operationId 에 매칭되는 breaking 만 반환한다.
+        해당 영역의 endpoint prefix 또는 operationId 에 매칭되는 변경을 breaking /
+        non-breaking 으로 나눠 반환한다(신규 API 추가 등 non-breaking 도 함께 보고).
         읽기전용이며 저장하지 않는다.
 
         fe_area: FE 영역 id 또는 label (예: "jam", "band", "auth").
         since_ref: 비교 기준 ref (선택). 미지정 시 FE 가 마지막으로 vendoring 한 스냅샷 기준.
         mock-only 영역은 "미연동"으로 반환되고, partial-mock 영역은 경고가 병기된다.
 
-        반환: {fe_area, area_status, base, head_ref, impacting_breaking[], flags, limitations[]}.
+        반환: {fe_area, area_status, base, head_ref, impacting_breaking[],
+        impacting_non_breaking[], flags, limitations[]}.
         limitations 는 사용자에게 함께 전달한다.
         """
         logger.info("tool called: check_impacting_changes (area=%s since=%s)", fe_area, since_ref)
